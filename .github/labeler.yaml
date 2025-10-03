@@ -1,0 +1,3 @@
+online-demo:
+    - changed-files:
+          - any-glob-to-any-file: "json-differ-online-demo/**"
