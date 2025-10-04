@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 
-import { diffFixture } from "@/fixtures/diff-data";
-import { type DiffLine, DiffSide, DiffStatus } from "@/lib/types";
+import { DiffSide, DiffStatus } from "@/lib/types";
 import { diffChars } from "@/lib/utils";
+
+import type { Props } from "./types";
 
 // Render left side (removed parts highlighted)
 const renderLeftDiff = (oldLine: string, newLine: string) => {
@@ -56,15 +57,7 @@ const renderRightDiff = (oldLine: string, newLine: string) => {
   );
 };
 
-export default function DiffViewer() {
-  const [diffs, setDiffs] = useState<DiffLine[]>([]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setDiffs(diffFixture);
-    }, 300);
-  }, []);
-
+export default function DiffViewer({ diffs }: Props) {
   const getBgColor = (status: DiffStatus, side: DiffSide) => {
     if (status === DiffStatus.MODIFIED)
       return side === DiffSide.LEFT ? "bg-red-100" : "bg-green-100";
@@ -81,7 +74,7 @@ export default function DiffViewer() {
     <div className="grid grid-cols-2 rounded-lg bg-gray-100 p-4 font-mono text-sm">
       {/* Left Column - Original */}
       <div className="border-r">
-        <div className="mb-2 border-b bg-gray-200 px-2 pb-2 font-bold">
+        <div className="mb-2 bg-gray-200 px-2 py-2 font-bold text-zinc-900">
           Original
         </div>
         {diffs.map((line, idx) => (
@@ -107,7 +100,7 @@ export default function DiffViewer() {
 
       {/* Right Column - Modified */}
       <div>
-        <div className="mb-2 border-b bg-gray-200 px-2 pb-2 font-bold">
+        <div className="mb-2 bg-gray-200 px-2 py-2 font-bold text-zinc-900">
           Modified
         </div>
         {diffs.map((line, idx) => (
