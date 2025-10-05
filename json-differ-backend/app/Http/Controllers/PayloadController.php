@@ -25,7 +25,7 @@ class PayloadController extends Controller
             $type = $validated['type'];
 
             // Load example payload from storage
-            $filename = $type . '.json';
+            $filename = 'public/' . $type . '.json';
 
             if (!Storage::exists($filename)) {
                 return response()->json([
