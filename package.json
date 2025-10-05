@@ -1,0 +1,9 @@
+{
+  "name": "demo-json-differ",
+  "private": true,
+  "workspaces": [
+    "json-differ-backend",
+    "json-differ-frontend",
+    "json-differ-online-demo"
+  ]
+}
