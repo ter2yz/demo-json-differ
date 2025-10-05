@@ -6,4 +6,4 @@ backend:
           - any-glob-to-any-file: "json-differ-backend/**"
 vue-frontend:
     - changed-files:
-          - any-glob-to-any-file: "json-differ-ui/**"
+          - any-glob-to-any-file: "json-differ-frontend/**"
