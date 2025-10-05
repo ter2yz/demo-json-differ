@@ -1,7 +1,7 @@
 [build]
-  base = "json-differ-online-demo/"
-  publish = ".next/"
-  command = "npm run build"
+  base = "/"
+  publish = "json-differ-online-demo/.next/"
+  command = "npm run build --workspace=json-differ-online-demo"
 
 [[redirects]]
   from = "/*"
