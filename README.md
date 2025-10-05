@@ -1,11 +1,14 @@
-# ⚡ JSON Differ
+# JSON Differ Demo
 
 A full-stack application for comparing JSON payloads with visual side-by-side diff display.
 This project demonstrates webhook simulation and custom JSON comparison with **character-level highlighting**.
 
 ## 🎯 Live Demo
 
-👉 **[https://demo-json-differ.netlify.app/](https://demo-json-differ.netlify.app/)**
+👉 **[https://demo-json-differ.netlify.app/](https://demo-json-differ.netlify.app/)**  
+_This live version is powered by the standalone [Next.js demo repository](https://github.com/ter2yz/demo-json-differ-nextjs)._
+
+It serves as a **demo-only** deployment of the JSON Differ application, showcasing the comparison UI and webhook simulation features without affecting the core backend or frontend development workflow.
 
 ## ✨ Features
 
