@@ -33,17 +33,26 @@
       <p class="mb-4 text-gray-600">
         This simulates receiving two webhook payloads with a 30-second delay.
       </p>
-      <button
-        @click="sendExamplePayloads"
-        :disabled="loading"
-        class="rounded-lg bg-indigo-600 px-6 py-3 text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-      >
-        <div v-if="loading" class="flex items-center gap-2">
-          <LoadingIcon class="size-5 text-white" />
-          <span>Processing...</span>
-        </div>
-        <span v-else>Send Payloads & Compare</span>
-      </button>
+      <div class="flex gap-3">
+        <button
+          @click="sendExamplePayloads"
+          :disabled="loading"
+          class="rounded-lg bg-indigo-600 px-6 py-3 text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+        >
+          <div v-if="loading" class="flex items-center gap-2">
+            <LoadingIcon class="size-5 text-white" />
+            <span>Processing...</span>
+          </div>
+          <span v-else>Send Payloads & Compare</span>
+        </button>
+        <button
+          v-if="loading"
+          @click="cancelRequest"
+          class="rounded-lg bg-red-500 px-6 py-3 text-white transition-colors hover:bg-red-700"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- Custom Mode -->
@@ -82,17 +91,26 @@
         </p>
       </div>
 
-      <button
-        @click="compareCustomPayloads"
-        :disabled="loading"
-        class="rounded-lg bg-indigo-600 px-6 py-3 text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-      >
-        <div v-if="loading" class="flex items-center gap-2">
-          <LoadingIcon class="size-5 text-white" />
-          <span>Comparing...</span>
-        </div>
-        <span v-else>Compare Payloads</span>
-      </button>
+      <div class="flex gap-3">
+        <button
+          @click="compareCustomPayloads"
+          :disabled="loading"
+          class="rounded-lg bg-indigo-600 px-6 py-3 text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+        >
+          <div v-if="loading" class="flex items-center gap-2">
+            <LoadingIcon class="size-5 text-white" />
+            <span>Comparing...</span>
+          </div>
+          <span v-else>Compare Payloads</span>
+        </button>
+        <button
+          v-if="loading"
+          @click="cancelRequest"
+          class="rounded-lg bg-red-500 px-6 py-3 text-white transition-colors hover:bg-red-700"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- Status Messages -->
@@ -133,7 +151,7 @@ import { reactive, ref } from "vue";
 
 import DiffViewer from "./components/DiffViewer.vue";
 import LoadingIcon from "./components/icons/LoadingIcon.vue";
-import { API_BASE_URL } from "./config/constants";
+import { apiClient, getErrorMessage } from "./services/api";
 import type { DiffLine } from "./types";
 import { validateJSON } from "./utils/validation";
 
@@ -152,62 +170,67 @@ const errors = reactive({
   payload2: "",
 });
 
+// Request cancellation
+let abortController: AbortController | null = null;
+
 const sendExamplePayloads = async () => {
   reset();
   loading.value = true;
   message.value = "Sending payload 1...";
 
-  try {
-    const res1 = await fetch(`${API_BASE_URL}/payload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "payload1" }),
-    });
+  // Create new abort controller for this request
+  abortController = new AbortController();
 
-    if (!res1.ok) {
-      const error = await res1.json();
-      throw new Error(error.error || "Failed sending payload 1");
-    }
+  try {
+    await apiClient("/payload", {
+      method: "POST",
+      body: { type: "payload1" },
+      timeout: 35000, // 35 seconds for example mode
+      signal: abortController.signal,
+    });
 
     message.value = "✅ Payload 1 sent. Waiting 30s for payload 2...";
     progress.value = 33;
 
-    await new Promise((resolve) => setTimeout(resolve, 30000));
-
-    message.value = "Sending payload 2...";
-    const res2 = await fetch(`${API_BASE_URL}/payload`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "payload2" }),
+    // Wait 30 seconds (allow cancellation during wait)
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, 30000);
+      abortController?.signal.addEventListener("abort", () => {
+        clearTimeout(timeoutId);
+        reject(new Error("Request was cancelled"));
+      });
     });
 
-    if (!res2.ok) {
-      const error = await res2.json();
-      throw new Error(error.error || "Failed sending payload 2");
-    }
+    message.value = "Sending payload 2...";
+    await apiClient("/payload", {
+      method: "POST",
+      body: { type: "payload2" },
+      timeout: 35000,
+      signal: abortController.signal,
+    });
 
     message.value = "✅ Payload 2 sent. Comparing...";
     progress.value = 66;
 
-    const compareRes = await fetch(`${API_BASE_URL}/compare`);
-    if (!compareRes.ok) {
-      const error = await compareRes.json();
-      throw new Error(error.error || "Comparison failed");
-    }
+    const data = await apiClient<{ diffs: DiffLine[] }>("/compare", {
+      timeout: 35000,
+      signal: abortController.signal,
+    });
 
-    const data = await compareRes.json();
     message.value = "✅ Comparison complete.";
     progress.value = 100;
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     diffs.value = data.diffs || [];
     showResult.value = true;
-  } catch (err: any) {
-    message.value = `❌ Error: ${err.message}`;
+  } catch (err: unknown) {
+    const errorMessage = getErrorMessage(err);
+    message.value = `❌ ${errorMessage}`;
     diffs.value = [];
   } finally {
     message.value = "";
     loading.value = false;
+    abortController = null;
   }
 };
 
@@ -227,38 +250,51 @@ const compareCustomPayloads = async () => {
   message.value = "Comparing payloads...";
   progress.value = 50;
 
+  // Create new abort controller for this request
+  abortController = new AbortController();
+
   try {
-    const res = await fetch(`${API_BASE_URL}/compare-custom`, {
+    const data = await apiClient<{ diffs: DiffLine[] }>("/compare-custom", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         payload1: validation1.data,
         payload2: validation2.data,
-      }),
+      },
+      timeout: 10000, // 10 seconds for custom mode
+      signal: abortController.signal,
     });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Comparison failed");
-    }
-
-    const data = await res.json();
     message.value = "✅ Comparison complete.";
     progress.value = 100;
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     diffs.value = data.diffs || [];
     showResult.value = true;
-  } catch (err: any) {
-    message.value = `❌ Error: ${err.message}`;
+  } catch (err: unknown) {
+    const errorMessage = getErrorMessage(err);
+    message.value = `❌ ${errorMessage}`;
     diffs.value = [];
   } finally {
     message.value = "";
     loading.value = false;
+    abortController = null;
+  }
+};
+
+const cancelRequest = () => {
+  if (abortController) {
+    abortController.abort();
+    message.value = "Request cancelled.";
   }
 };
 
 const reset = () => {
+  // Cancel any ongoing request
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+
   diffs.value = [];
   message.value = "";
   loading.value = false;

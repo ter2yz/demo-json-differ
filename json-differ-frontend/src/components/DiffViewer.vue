@@ -6,15 +6,15 @@
     <div class="border-r">
       <div class="mb-2 bg-gray-200 px-2 py-2 font-bold text-zinc-900">Original</div>
       <div
-        v-for="(line, idx) in diffs"
+        v-for="(line, idx) in computedDiffs"
         :key="`left-${idx}`"
         :class="`flex ${getBgColor(line.status, DiffSide.LEFT)}`"
       >
         <div class="w-10 pr-2 text-right text-gray-500 select-none">
           {{ line.status === DiffStatus.ADDED ? "" : (line.leftNumber ?? "") }}
         </div>
-        <span v-if="line.status === DiffStatus.MODIFIED" class="flex-1 whitespace-pre-wrap">
-          <span v-for="(part, partIdx) in diffChars(line.left, line.right)" :key="partIdx">
+        <span v-if="line.status === DiffStatus.MODIFIED && line.charDiff" class="flex-1 whitespace-pre-wrap">
+          <span v-for="(part, partIdx) in line.charDiff" :key="partIdx">
             <span v-if="part.removed" class="bg-red-500 text-white">{{ part.value }}</span>
             <span v-else-if="!part.added" class="whitespace-pre-wrap text-zinc-900">{{
               part.value
@@ -32,15 +32,15 @@
     <div>
       <div class="mb-2 bg-gray-200 px-2 py-2 font-bold text-zinc-900">Modified</div>
       <div
-        v-for="(line, idx) in diffs"
+        v-for="(line, idx) in computedDiffs"
         :key="`right-${idx}`"
         :class="`flex ${getBgColor(line.status, DiffSide.RIGHT)}`"
       >
         <div class="w-10 pr-2 text-right text-gray-500 select-none">
           {{ line.rightNumber ?? "" }}
         </div>
-        <span v-if="line.status === DiffStatus.MODIFIED" class="flex-1 whitespace-pre-wrap">
-          <span v-for="(part, partIdx) in diffChars(line.left, line.right)" :key="partIdx">
+        <span v-if="line.status === DiffStatus.MODIFIED && line.charDiff" class="flex-1 whitespace-pre-wrap">
+          <span v-for="(part, partIdx) in line.charDiff" :key="partIdx">
             <span v-if="part.added" class="bg-green-400">{{ part.value }}</span>
             <span v-else-if="!part.removed" class="whitespace-pre-wrap text-zinc-900">{{
               part.value
@@ -56,12 +56,26 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { type DiffLine, DiffSide, type DiffSide as DiffSideType, DiffStatus } from "@/types";
 import { diffChars } from "@/utils/diff";
 
-defineProps<{
+const props = defineProps<{
   diffs: DiffLine[];
 }>();
+
+// Memoize character-level diffs to avoid re-computing on every render
+const computedDiffs = computed(() => {
+  return props.diffs.map((line) => {
+    if (line.status === DiffStatus.MODIFIED) {
+      return {
+        ...line,
+        charDiff: diffChars(line.left, line.right),
+      };
+    }
+    return line;
+  });
+});
 
 const getBgColor = (status: string, side: DiffSideType): string => {
   if (status === DiffStatus.MODIFIED) {
