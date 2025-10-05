@@ -1,0 +1,3 @@
+[submodule "json-differ-online"]
+	path = json-differ-online
+	url = https://github.com/ter2yz/demo-json-differ-nextjs.git
