@@ -1,6 +1,6 @@
 [build]
-  base = "demo-json-differ"
-  publish = "json-differ-online-demo/.next"
+  base = "json-differ-online-demo/"
+  publish = ".next"
   command = "npm run build"
 
 [[plugins]]
