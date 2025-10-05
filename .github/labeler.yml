@@ -1,3 +1,9 @@
 online-demo:
     - changed-files:
           - any-glob-to-any-file: "json-differ-online-demo/**"
+backend:
+    - changed-files:
+          - any-glob-to-any-file: "json-differ-backend/**"
+vue-frontend:
+    - changed-files:
+          - any-glob-to-any-file: "json-differ-ui/**"
