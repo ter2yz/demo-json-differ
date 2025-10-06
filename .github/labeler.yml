@@ -1,6 +1,6 @@
 online-demo:
     - changed-files:
-          - any-glob-to-any-file: "json-differ-online-demo/**"
+          - any-glob-to-any-file: "json-differ-online/**"
 backend:
     - changed-files:
           - any-glob-to-any-file: "json-differ-backend/**"
